@@ -1,0 +1,40 @@
+# KORVA prototype adaptation plan
+
+## Goal and scope
+
+Adapt the supplied `/home/ubuntu/upload/korva.html` into the existing `/home/ubuntu/korva` React/TypeScript web application. Reuse its KORVA brand, navy/blue/gold palette, bilingual-ready typography approach, role-aware navigation, dashboard, sample school records, and working demo interactions. The requested first pass is a **clearly labelled interactive browser demo**, not production school software. The attachment explicitly uses seeded data in browser storage and says real accounts are not yet connected.
+
+Keep the project's existing React/Vite/Express/tRPC/Drizzle structure and Manus-managed server/database configuration. Do not switch to Supabase, add a new identity provider, alter the database schema, or imply that browser-local demo records are shared, backed up, or protected by server authorization. Do not delete, reset, or seed the shared managed database. Keep the starter's existing real Manus authentication implementation intact; a real authenticated identity alone is not interpreted as a school membership or role. Demo role selection remains separate from application authentication and exposes only synthetic demo records.
+
+## Design
+
+Reuse the supplied reference design: a restrained Sierra Leone school-operations dashboard with a deep navy navigation rail, warm gold active/brand accents, calm blue work surfaces, pale neutral page background, crisp white cards, and high-contrast status chips. Use Public Sans for interface text with a Source Serif 4 / Georgia-style editorial heading face, with local/system fallbacks. The gold geometric rise mark and KORVA wordmark, spacious dashboard metrics, clear section headers, concise tables, dated timeline, and visible demo/data-state badges are signature elements.
+
+Design movement: contemporary civic-service software with editorial school-report typography. Core principles: clarity before density; visible context and data state; role-aware simplicity; accessible contrast. Layout paradigm: desktop left navigation and a flexible work area, changing to a compact slide-out menu on smaller screens. Interaction philosophy: direct controls, explicit save/submit states, useful validation, and no hidden irreversible behavior. Motion is subtle, brief, and disabled for reduced-motion preferences. Brand essence: a confident, practical school operations workspace; personality: trustworthy, clear, capable. Brand voice: “See the school day clearly.” and “Your class. Your register. One clear record.” The logo remains the supplied geometric rise motif and KORVA wordmark. Signature color: KORVA navy `#071B43`; supporting blue `#1557B0` and gold `#D6A12B`.
+
+## User-facing behavior
+
+- Show a responsive KORVA sign-in/demo entry screen based on the supplied hero panel. Keep real Manus sign-in distinct from clearly marked demo workspace choices; do not accept an email/password as though it authenticated a real account.
+- Provide the reference's sample workspaces: school leader, teacher, and platform administrator. Each demo role sees only its role-appropriate navigation and allowed demo actions. The platform administrator view shows aggregate school details only; it does not open student records. Teacher demo cannot register students or edit finance. School leader demo can add fictional students and submit/correct attendance in this browser demo.
+- Show a persistent, conspicuous “DEMO DATA — stored only in this browser” notice inside every demo workspace. Use fictional seeded data modeled on the attachment, isolated by sample school. Explain that role controls and records in this prototype are front-end demonstrations, not a production authorization boundary.
+- Provide a working dashboard with school and role context, useful demo metrics, activity history, quick actions, network state, local-pending indicator, mobile menu, dark/light theme toggle, and sign-out back to the entry screen.
+- Provide a searchable student directory. Opening a student shows a detailed, dated synthetic record: profile and enrollment information, guardian link, class/enrollment history, attendance, assessment/report examples, finance summary only for a finance-permitted school leader view, and an activity timeline. Preserve event date and entry/change date separately when shown. Do not expose these details in the platform aggregate view.
+- Student registration validates full name, guardian name, and class; detects a likely duplicate and asks for an explicit second confirmation; then creates a fictional student record with a dated enrollment event and audit entry.
+- Attendance is per school, class, and date. Require a mark for every listed student before submission; unmarked does not mean absent. Allow configured demo states (present, absent, late, excused). Corrections require a reason and create an audit-history entry. Teacher is limited to assigned demo classes; leader can manage all sample classes.
+- Demonstrate poor-connectivity behavior honestly: save supported demo edits locally and persist a visible local-change queue across reloads. When connectivity returns, update only the online indicator; do not upload or automatically clear queued edits, and say that no server sync was attempted. Explicitly state that these records are not synchronized to a server or another device.
+- Keep unfinished product areas (classes, assessments/results, finance, learning, forums/communications, leaderboards, national reporting, sync centre) visibly labelled planned/future unless an interaction is genuinely implemented. Make the roadmap phase badge clear and prevent inert quick-action buttons from masquerading as live features.
+- Support keyboard operation, visible focus, semantic labels, table overflow on mobile, safe text rendering, and reduced motion.
+
+## Implementation approach and project structure
+
+- `client/src/pages/Home.tsx`: entry page and demo/real sign-in choice; authenticated accounts without a configured school membership see a clear no-membership state, not an assumed principal dashboard.
+- `client/src/components/korva/`: KORVA sidebar/top bar, role switcher for explicit demo mode, status badges, responsive navigation, student-record panel, confirmation dialogs/toasts, dashboard cards, and accessible table/form primitives. Reuse existing UI components where they fit.
+- `client/src/lib/korva-demo/`: typed synthetic school/student/class/attendance/invoice/report/activity models, role capability definitions for the demo, seed data, local-storage version/migration and persistence helpers, date/currency formatting, and validation functions. All sample values remain obviously fictional/demo.
+- Keep the starter's `client/src/_core/hooks/useAuth.ts`, Express/tRPC auth, existing MySQL schema, and migrations unchanged unless a minimal integration point is required and approved later. Do not create production student operations APIs in this prototype pass.
+- `client/src/index.css`: adapt global colors, typography, theme variables, focus styles, and page-safe areas to the supplied visual reference without disrupting shared starter components.
+- `client/src/App.tsx`: retain the existing `/` and `/404` route behavior; add routes only if the implemented experience needs them.
+- `public/manus-routes.json`: declare the actual client page routes before dev-server launch and keep it accurate as routes evolve.
+
+## Dependencies and material constraints
+
+Use installed React, TypeScript, Wouter, Tailwind, lucide-react, and the existing UI kit. Avoid new packages unless implementation proves necessary. Use no decorative image generation; this is an internal dashboard and the user supplied its visual reference. A cloud development server will use the project's configured port 3000. Real data authentication, membership assignment, multi-tenant database policies, persistent school workflows, backup/restore, and external providers are explicitly outside this demo adaptation and need a later approved implementation stage.
