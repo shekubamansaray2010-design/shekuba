@@ -10,8 +10,9 @@ import {
   NAV_ITEMS, ROLE_META, SCHOOLS, createSeedState, dateKey, formatDate, formatMoney,
   loadDemoState, saveDemoState,
 } from "@/lib/korva-demo";
+import { FamilyPage, LearnerPage, RoleDashboard } from "@/components/korva/RoleDashboards";
 
-type Props = { onExit: () => void };
+type Props = { initialRole: DemoRole; onExit: () => void };
 type PageId = (typeof NAV_ITEMS)[number]["id"] | "schools";
 type PendingOperation = { id: string; label: string; at: string };
 const PENDING_STORAGE_KEY = "korva-demo-local-changes-v1";
@@ -34,19 +35,31 @@ const MARKS: { key: AttendanceMark; label: string; short: string }[] = [
   { key: "L", label: "Late", short: "L" },
   { key: "E", label: "Excused", short: "E" },
 ];
-const ROLE_CLASS: Record<DemoRole, string> = { principal: "leader", teacher: "teacher", platform: "platform" };
+const ROLE_CLASS: Record<DemoRole, string> = {
+  owner: "owner", principal: "principal", school_admin: "school-admin", admissions: "admissions",
+  teacher: "teacher", bursar: "bursar", student: "student", guardian: "guardian", inspector: "inspector", platform: "platform",
+};
 const iconMap: Record<string, typeof LayoutDashboard> = {
   dashboard: LayoutDashboard, students: Users, attendance: ClipboardCheck, classes: School,
-  assessments: FileCheck2, results: FileBarChart2, learning: BookOpen, forums: MessagesSquare,
-  finance: Wallet, communications: Bell, leaderboards: Activity, national: FileBarChart2, sync: RotateCcw,
+  applicants: Users, staff: GraduationCap, assessments: FileCheck2, results: FileBarChart2, learning: BookOpen, forums: MessagesSquare,
+  my_learning: BookOpen, my_child: Users, finance: Wallet, communications: Bell, library: Library, transport: School,
+  analytics: Activity, leaderboards: Activity, national: FileBarChart2, sync: RotateCcw, settings: Settings2,
 };
 const PAGE_META: Record<string, { title: string; note: string }> = {
+  applicants: { title: "Admissions pipeline", note: "Review prospective learners and enrollment readiness." },
+  staff: { title: "Staff & coverage", note: "Review staff roles, class coverage, and substitute needs." },
   classes: { title: "Classes & streams", note: "Manage grade structure and student groups." },
   assessments: { title: "Assessments", note: "Review teacher-submitted marks and assessment work." },
   results: { title: "Results & reports", note: "Prepare, review, and publish student reports." },
   learning: { title: "Learning resources", note: "Share learning materials and student assignments." },
   forums: { title: "Class forums", note: "Teacher-led conversations for assigned school groups." },
   finance: { title: "Finance & fees", note: "Invoices, payment verification, and school reconciliation." },
+  my_learning: { title: "My learning", note: "Your own classes, assignments, learning materials, and published results." },
+  my_child: { title: "My linked learner", note: "A guardian-only view of the learner linked to this demo account." },
+  library: { title: "Library & inventory", note: "Track learning resources, books, and school inventory." },
+  transport: { title: "Transport", note: "Manage authorized route and pickup information." },
+  analytics: { title: "School analytics", note: "Review school-level trends and performance summaries." },
+  settings: { title: "School settings", note: "Manage academic structure, terms, and school configuration." },
   communications: { title: "Communication", note: "Notices, messages, calendars, and family updates." },
   leaderboards: { title: "Leaderboards", note: "Explore approved school performance trends." },
   national: { title: "National reporting", note: "Prepare authorized education reports and exports." },
@@ -79,15 +92,16 @@ function Metric({ label, value, detail, icon: Icon, trend, tone = "blue" }: {
   </article>;
 }
 
-export default function KORVADemo({ onExit }: Props) {
+export default function KORVADemo({ initialRole, onExit }: Props) {
   const [state, setState] = useState<DemoState>(() => loadDemoState());
-  const [role, setRole] = useState<DemoRole>("principal");
+  const [role, setRole] = useState<DemoRole>(initialRole);
   const [schoolId, setSchoolId] = useState("s1");
-  const [page, setPage] = useState<PageId>("dashboard");
+  const [page, setPage] = useState<PageId>(() => initialRole === "platform" ? "schools" : "dashboard");
   const [search, setSearch] = useState("");
   const [student, setStudent] = useState<DemoStudent | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [roleMenuOpen, setRoleMenuOpen] = useState(false);
   const [dark, setDark] = useState(() => {
     try { return localStorage.getItem("korva-demo-theme") === "dark"; } catch { return false; }
   });
@@ -106,10 +120,8 @@ export default function KORVADemo({ onExit }: Props) {
   const school = SCHOOLS.find((item) => item.id === schoolId)!;
   const data: DemoSchoolData = state.schools[schoolId];
   const roleMeta = ROLE_META[role];
-  const isLeader = role === "principal";
   const allowedNav = NAV_ITEMS.filter((item) => item.roles.includes(role as never));
-  const canRegister = isLeader && schoolId === "s1";
-  const canEditAttendance = role === "principal" || (role === "teacher" && schoolId === "s1");
+  const canRegister = ["principal", "school_admin", "admissions"].includes(role) && schoolId === "s1";
   const today = dateKey();
   const todayRegister = data.attendance.find((item) => item.date === today && item.classId === classFilter);
 
@@ -163,13 +175,15 @@ export default function KORVADemo({ onExit }: Props) {
     setStudent(null);
     setShowAdd(false);
     setMobileOpen(false);
+    setRoleMenuOpen(false);
     setSearch("");
     setPage(nextRole === "platform" ? "schools" : "dashboard");
   }
 
   function navigate(nextPage: PageId) {
-    if (nextPage === "finance" && !isLeader) return;
-    if (role === "platform" && nextPage !== "schools") return;
+    if (role === "platform") {
+      if (nextPage !== "schools") return;
+    } else if (!allowedNav.some((item) => item.id === nextPage)) return;
     setPage(nextPage);
     setStudent(null);
     setMobileOpen(false);
@@ -250,6 +264,7 @@ export default function KORVADemo({ onExit }: Props) {
     const term = search.trim().toLowerCase();
     let rows = data.students;
     if (role === "teacher") rows = rows.filter((item) => data.classes.find((c) => c.id === item.classId)?.teacherIds.includes("teacher-1"));
+    if (role === "student" || role === "guardian") rows = rows.slice(0, 1);
     if (term) rows = rows.filter((item) => `${item.id} ${item.name} ${className(item.classId)} ${item.guardian}`.toLowerCase().includes(term));
     return rows;
   }, [data.students, data.classes, search, role]);
@@ -292,25 +307,28 @@ export default function KORVADemo({ onExit }: Props) {
     {mobileOpen && <button className="korva-mobile-scrim" onClick={() => setMobileOpen(false)} aria-label="Close navigation" />}
     <main className="korva-main">
       <header className="korva-topbar">
-        <button className="korva-icon-button korva-menu-toggle" onClick={() => setMobileOpen((open) => !open)} aria-label="Toggle navigation"><Menu size={20} /></button>
-        <div className="korva-breadcrumb"><span>School workspace</span><span>/</span><strong>{page === "schools" ? "Schools" : student ? student.name : navLabel(page)}</strong></div>
+          <button className="korva-icon-button korva-menu-toggle" onClick={() => setMobileOpen((open) => !open)} aria-label="Toggle navigation"><Menu size={20} /></button>
+        <div className="korva-breadcrumb"><span>{roleMeta.label}</span><span>/</span><strong>{page === "schools" ? "Schools" : student ? student.name : navLabel(page)}</strong></div>
         <div className="korva-topbar-actions">
-          {role !== "platform" && <label className="korva-school-switch"><span className="sr-only">Switch school</span><School size={15} /><select aria-label="Switch demo school" value={schoolId} onChange={(event) => { setSchoolId(event.target.value); setStudent(null); setPage("dashboard"); }}>
+          {!(["platform", "student", "guardian", "inspector"] as DemoRole[]).includes(role) && <label className="korva-school-switch"><span className="sr-only">Switch school</span><School size={15} /><select aria-label="Switch demo school" value={schoolId} onChange={(event) => { setSchoolId(event.target.value); setStudent(null); setPage("dashboard"); }}>
             {SCHOOLS.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
           </select><ChevronDown size={13} /></label>}
           <span className={`korva-online-pill ${online ? "online" : "offline"}`} title="Local demo changes stay in this browser; no server synchronization is active."><span className="korva-online-dot" />{online ? "Online" : "Offline"}{pending.length > 0 && <b>{pending.length} local</b>}</span>
           <button className="korva-icon-button" onClick={() => setDark((value) => !value)} aria-label={dark ? "Switch to light theme" : "Switch to dark theme"}>{dark ? <Sun size={18} /> : <Moon size={18} />}</button>
-          <button className="korva-top-avatar" aria-label="Switch demo role" title="Switch demo role" onClick={() => changeRole(role === "principal" ? "teacher" : role === "teacher" ? "platform" : "principal")}>{roleMeta.initials}</button>
+          <div className="korva-role-picker"><button className={`korva-top-avatar ${ROLE_CLASS[role]}`} aria-label={`Switch demo role. Current role: ${roleMeta.label}`} title="Switch demo role" aria-expanded={roleMenuOpen} onClick={() => setRoleMenuOpen((open) => !open)}>{roleMeta.initials}<ChevronDown size={11} /></button>
+            {roleMenuOpen && <div className="korva-role-menu" role="menu" aria-label="Switch demo role"><strong>Switch demo role</strong>{(Object.keys(ROLE_META) as DemoRole[]).map((nextRole) => <button key={nextRole} role="menuitem" className={role === nextRole ? "selected" : ""} onClick={() => changeRole(nextRole)}><span className={`korva-role-menu-avatar ${ROLE_CLASS[nextRole]}`}>{ROLE_META[nextRole].initials}</span><span>{ROLE_META[nextRole].label}</span>{role === nextRole && <CheckCircle2 size={14} />}</button>)}</div>}
+          </div>
           <button className="korva-exit-demo" onClick={onExit}><LogOut size={15} /><span>Exit demo</span></button>
         </div>
       </header>
 
       <div className="korva-content">
         {role === "teacher" && schoolId === "s2" && <div className="korva-inline-banner"><CircleAlert size={17} /><span>This sample school is still being set up. No teacher class assignments are available in this demo tenant.</span></div>}
-        {role === "platform" ? <PlatformSchools state={state} /> : page === "dashboard" ? <Dashboard
+        {role === "platform" ? <PlatformSchools state={state} /> : page === "dashboard" ? <RoleDashboard
           data={data} schoolName={school.name} role={role} attendanceSummary={attendanceSummary}
           pendingCount={pending.length} pendingVerification={pendingVerification} verifiedFees={verifiedFees}
           onNavigate={navigate} onAddStudent={() => { setShowAdd(true); setFormClass(data.classes[0]?.id ?? ""); }}
+          onOpenPersonal={() => { setStudent(data.students[0] ?? null); }}
         /> : page === "students" ? <StudentsPage
           students={students} search={search} setSearch={setSearch} className={className}
           canRegister={canRegister} onAdd={() => { setShowAdd(true); setFormClass(data.classes[0]?.id ?? ""); }}
@@ -319,7 +337,7 @@ export default function KORVADemo({ onExit }: Props) {
           data={data} role={role} classFilter={classFilter} setClassFilter={setClassFilter}
           marks={registerMarks} setMarks={setRegisterMarks} correctionReason={correctionReason}
           setCorrectionReason={setCorrectionReason} online={online} pendingCount={pending.length}
-          onStart={openRegister} onSubmit={saveAttendance} /> : <PlannedPage page={page} onNavigate={navigate} />}
+          onStart={openRegister} onSubmit={saveAttendance} /> : page === "my_learning" ? <LearnerPage student={data.students[0] ?? null} onOpen={() => setStudent(data.students[0] ?? null)} /> : page === "my_child" ? <FamilyPage student={data.students[0] ?? null} onOpen={() => setStudent(data.students[0] ?? null)} /> : <PlannedPage page={page} onNavigate={navigate} />}
       </div>
       <footer className="korva-footer"><span>© 2026 KORVA <i>•</i> Rise. Learn. Lead.</span><span>Fictional demo school data <i>•</i> Leones (SLE)</span></footer>
     </main>

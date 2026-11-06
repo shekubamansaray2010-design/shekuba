@@ -9,17 +9,18 @@
 - Authenticated accounts without a configured school membership see a clear no-membership state, not an assumed principal dashboard.
 
 ## 2. Role-specific sample workspaces and browser-only demo data
-**Status: Complete** — school leader and teacher views were opened and role navigation/assigned classes inspected; platform aggregate view stays separate.
-- Provide the sample workspaces: school leader, teacher, and platform administrator.
-- Each demo role sees only its role-appropriate navigation and allowed demo actions.
-- The platform administrator view shows aggregate school details only and does not open student records.
-- Teacher demo cannot register students or edit finance; school leader demo can add fictional students and submit/correct attendance in this browser demo.
+**Status: Complete** — implemented ten independent role dashboards and menus; browser review confirmed distinct owner, student, bursar, guardian, and inspector experiences.
+- Provide distinct sample workspaces for school owner, principal, school administrator, admissions officer, teacher, bursar, student, parent/guardian, inspector, and KORVA platform administrator.
+- Each role sees its own task-focused dashboard; do not reuse a shared dashboard or the same role-independent metrics/actions. The school owner sees school-wide outcomes; the principal sees academic and attendance oversight; the school administrator sees school operations; the admissions officer sees learner enrollment; teachers see assigned classes and learning work; the bursar sees finance tasks; students see only their own learning; guardians see only linked learner information; inspectors see read-only school aggregates; platform administrators see tenant aggregates only.
+- Student and guardian workspaces cannot take attendance. Students cannot manage fees or view classmates. Teachers cannot register students or access finance. Bursars do not receive academic-record or sensitive health/safeguarding access. Inspectors and platform administrators cannot open individual student records.
+- Each role has navigation and actions limited to its school responsibilities. Buttons into unfinished areas lead to a visibly planned screen, not a false claim that the workflow is live.
 - Show a conspicuous “DEMO DATA — stored only in this browser” notice inside every demo workspace.
 - Use fictional seeded data, isolated by sample school. State that role controls and records in this prototype are front-end demonstrations, not a production authorization boundary.
 
 ## 3. Dashboard, school context, utilities, and responsive navigation
-**Status: Complete** — dashboard reviewed in both school leader and teacher workspaces; mobile/desktop entry layouts rendered.
-- Provide a dashboard with school and role context, demo metrics, activity history, quick actions, network state, local-pending indicator, mobile menu, dark/light theme toggle, and sign-out back to the entry screen.
+**Status: Complete** — every role renders its own school, classroom, finance, family, learner, oversight, or tenant view with role-specific navigation and actions.
+- Provide a separate role-specific dashboard for each demo role with role-appropriate school or personal context, metrics, activity, and quick actions; share the branded shell and utilities only, not dashboard content.
+- Keep school or learner context, network state, persisted browser-local-change indicator, mobile menu, dark/light theme toggle, explicit role switching, and exit back to the entry screen.
 - Support keyboard operation, visible focus, semantic labels, mobile-overflow handling, safe text rendering, and reduced motion.
 
 ## 4. Searchable students and detailed dated student records
@@ -61,3 +62,10 @@
 - Do not switch to Supabase, alter the database schema, reset/seed the shared managed database, or claim server-enforced authorization, shared persistence, backup, or production synchronization for local demo data.
 - Preserve current project files and existing auth behavior outside the intended UI adaptation.
 - Declare actual client page routes in `public/manus-routes.json` before the first dev-server start and keep the manifest accurate.
+
+## 10. Apply the uploaded school-dashboard design reference
+**Status: Complete** — recreated the screenshot’s navy/gold navigation, school masthead, colored KPI strip, performance/leaderboard/quick-action panels, and activity/lower dashboard panels as responsive components while keeping KORVA branding.
+- Use the uploaded image as the complete visual reference: deep-navy school navigation rail with gold active state; school identity masthead; bold blue/gold KPI cards; central performance and leaderboard area beside role-specific quick actions; and lower class-performance, activity, and brand panels.
+- Apply the reference's visual hierarchy, spacing, palette, icons, and typography to every role experience, changing content and actions to match that role.
+- Build responsive, interactive components rather than displaying the screenshot as a static image. Keep the KORVA name and “RISE. LEARN. LEAD.” identity.
+- Do not imply the screenshot's example counts, rankings, named people, school crest or external connections are live school data or verified integrations; any added sample values remain visibly fictional.

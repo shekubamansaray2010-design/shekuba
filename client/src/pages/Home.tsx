@@ -5,10 +5,23 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import KORVADemo from "@/components/korva/KORVADemo";
 import type { DemoRole } from "@/lib/korva-demo";
 
-const DEMO_ROLES: { id: DemoRole; title: string; description: string; initials: string }[] = [
-  { id: "principal", title: "School leader", description: "School overview and daily decisions", initials: "SL" },
-  { id: "teacher", title: "Teacher", description: "Assigned classes and attendance", initials: "TN" },
-  { id: "platform", title: "Platform admin", description: "Aggregate school tenant overview", initials: "KA" },
+const DEMO_ROLE_GROUPS: { label: string; roles: { id: DemoRole; title: string; description: string; initials: string }[] }[] = [
+  { label: "School team", roles: [
+    { id: "owner", title: "School owner", description: "School-wide outcomes and oversight", initials: "SO" },
+    { id: "principal", title: "Principal", description: "Academic progress and approvals", initials: "PR" },
+    { id: "school_admin", title: "School administrator", description: "Daily operations and records", initials: "SA" },
+    { id: "admissions", title: "Admissions officer", description: "New learners and enrollment", initials: "AO" },
+    { id: "teacher", title: "Teacher", description: "Assigned classes and learning", initials: "TN" },
+    { id: "bursar", title: "Bursar", description: "Fees, receipts and reconciliation", initials: "BU" },
+  ] },
+  { label: "Learners & families", roles: [
+    { id: "student", title: "Student", description: "Your classes, learning and results", initials: "ST" },
+    { id: "guardian", title: "Parent / guardian", description: "Your linked learner’s progress", initials: "PG" },
+  ] },
+  { label: "Oversight", roles: [
+    { id: "inspector", title: "School inspector", description: "Read-only school-level overview", initials: "IN" },
+    { id: "platform", title: "KORVA platform admin", description: "Aggregate tenant operations", initials: "KA" },
+  ] },
 ];
 
 function BrandMark({ size = 38 }: { size?: number }) {
@@ -22,7 +35,7 @@ export default function Home() {
   const [logoutError, setLogoutError] = useState("");
   const [loggingOut, setLoggingOut] = useState(false);
 
-  if (demoRole) return <KORVADemo key={demoRole} onExit={() => setDemoRole(null)} />;
+  if (demoRole) return <KORVADemo key={demoRole} initialRole={demoRole} onExit={() => setDemoRole(null)} />;
 
   const login = () => {
     setLoginError("");
@@ -79,10 +92,12 @@ export default function Home() {
           <button className="korva-auth-button" onClick={login}><span className="korva-manus-symbol">M</span><span>Continue with Manus</span><ArrowRight size={17} /></button>
           {loginError && <p className="korva-entry-error" role="alert"><TriangleAlert size={15} />{loginError}</p>}
           <div className="korva-entry-divider"><span /> <small>OR EXPLORE A DEMO</small> <span /></div>
-          <div className="korva-demo-heading"><div><span className="korva-demo-dot" /> <strong>Sample workspaces</strong></div><span>Fictional data</span></div>
-          <div className="korva-role-list">{DEMO_ROLES.map((item) => <button className="korva-role-option" key={item.id} onClick={() => setDemoRole(item.id)}>
-            <span className={`korva-role-avatar ${item.id}`}>{item.initials}</span><span className="korva-role-copy"><strong>{item.title}</strong><small>{item.description}</small></span><ArrowRight className="korva-role-arrow" size={17} />
-          </button>)}</div>
+          <div className="korva-demo-heading"><div><span className="korva-demo-dot" /> <strong>Choose your school role</strong></div><span>Fictional data</span></div>
+          <div className="korva-demo-role-groups">{DEMO_ROLE_GROUPS.map((group) => <section className="korva-demo-role-group" key={group.label}>
+            <h3>{group.label}</h3><div className="korva-role-list">{group.roles.map((item) => <button className="korva-role-option" key={item.id} onClick={() => setDemoRole(item.id)}>
+              <span className={`korva-role-avatar ${item.id}`}>{item.initials}</span><span className="korva-role-copy"><strong>{item.title}</strong><small>{item.description}</small></span><ArrowRight className="korva-role-arrow" size={17} />
+            </button>)}</div>
+          </section>)}</div>
           <p className="korva-entry-hint"><Eye size={15} /> Demo mode is separate from real sign-in. Sample edits stay in this browser.</p>
         </>}
         <div className="korva-entry-footer"><span><GraduationCap size={15} /> Designed for school communities</span><span>RISE. LEARN. LEAD.</span></div>

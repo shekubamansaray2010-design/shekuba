@@ -1,4 +1,4 @@
-export type DemoRole = "principal" | "teacher" | "platform";
+export type DemoRole = "owner" | "principal" | "school_admin" | "admissions" | "teacher" | "bursar" | "student" | "guardian" | "inspector" | "platform";
 export type AttendanceMark = "P" | "A" | "L" | "E";
 
 export type DemoClass = { id: string; name: string; teacherIds: string[] };
@@ -44,25 +44,40 @@ export const SCHOOLS = [
 ] as const;
 
 export const ROLE_META: Record<DemoRole, { label: string; initials: string }> = {
-  principal: { label: "School leader", initials: "SL" },
+  owner: { label: "School owner", initials: "SO" },
+  principal: { label: "Principal", initials: "PR" },
+  school_admin: { label: "School administrator", initials: "SA" },
+  admissions: { label: "Admissions officer", initials: "AO" },
   teacher: { label: "Teacher", initials: "TN" },
+  bursar: { label: "Bursar", initials: "BU" },
+  student: { label: "Student", initials: "ST" },
+  guardian: { label: "Parent / guardian", initials: "PG" },
+  inspector: { label: "School inspector", initials: "IN" },
   platform: { label: "KORVA platform admin", initials: "KA" },
 };
 
 export const NAV_ITEMS = [
-  { id: "dashboard", label: "Dashboard", group: "Workspace", roles: ["principal", "teacher"] },
-  { id: "students", label: "Students", group: "School records", roles: ["principal", "teacher"] },
+  { id: "dashboard", label: "My dashboard", group: "Workspace", roles: ["owner", "principal", "school_admin", "admissions", "teacher", "bursar", "student", "guardian", "inspector"] },
+  { id: "students", label: "Student records", group: "School records", roles: ["principal", "school_admin", "admissions", "teacher"] },
   { id: "attendance", label: "Attendance", group: "School records", roles: ["principal", "teacher"] },
-  { id: "classes", label: "Classes & streams", group: "School records", roles: ["principal", "teacher"], phase: 2 },
-  { id: "assessments", label: "Assessments", group: "Teaching & learning", roles: ["principal", "teacher"], phase: 4 },
+  { id: "classes", label: "Classes & streams", group: "School records", roles: ["owner", "principal", "school_admin", "teacher"], phase: 2 },
+  { id: "applicants", label: "Admissions pipeline", group: "School records", roles: ["admissions"], phase: 2 },
+  { id: "staff", label: "Staff & coverage", group: "School operations", roles: ["owner", "principal", "school_admin"], phase: 2 },
+  { id: "assessments", label: "Examinations & scores", group: "Teaching & learning", roles: ["principal", "teacher"], phase: 4 },
   { id: "results", label: "Results & reports", group: "Teaching & learning", roles: ["principal", "teacher"], phase: 4 },
-  { id: "learning", label: "Learning resources", group: "Teaching & learning", roles: ["principal", "teacher"], phase: 6 },
-  { id: "forums", label: "Class forums", group: "Teaching & learning", roles: ["principal", "teacher"], phase: 6 },
-  { id: "finance", label: "Finance & fees", group: "Administration", roles: ["principal"], phase: 5 },
-  { id: "communications", label: "Communication", group: "Administration", roles: ["principal", "teacher"], phase: 3 },
-  { id: "leaderboards", label: "Leaderboards", group: "Insights", roles: ["principal"], phase: 7 },
-  { id: "national", label: "National reporting", group: "Insights", roles: ["principal"], phase: 8 },
-  { id: "sync", label: "Sync centre", group: "Administration", roles: ["principal", "teacher"], phase: 3 },
+  { id: "learning", label: "Learning resources", group: "Teaching & learning", roles: ["teacher"], phase: 6 },
+  { id: "forums", label: "Class forums", group: "Teaching & learning", roles: ["teacher"], phase: 6 },
+  { id: "my_learning", label: "My learning", group: "My school life", roles: ["student"], phase: 6 },
+  { id: "my_child", label: "My linked learner", group: "Family", roles: ["guardian"], phase: 4 },
+  { id: "finance", label: "Finance & fees", group: "Finance office", roles: ["bursar"], phase: 5 },
+  { id: "communications", label: "Communication", group: "School community", roles: ["owner", "principal", "school_admin", "teacher", "student", "guardian"], phase: 3 },
+  { id: "library", label: "Library & inventory", group: "School operations", roles: ["school_admin", "teacher", "student"], phase: 6 },
+  { id: "transport", label: "Transport", group: "School operations", roles: ["school_admin", "guardian"], phase: 6 },
+  { id: "analytics", label: "School analytics", group: "Insights", roles: ["owner", "principal", "inspector"], phase: 7 },
+  { id: "leaderboards", label: "Leaderboards", group: "Insights", roles: ["owner", "principal"], phase: 7 },
+  { id: "national", label: "National reporting", group: "Oversight", roles: ["principal", "inspector"], phase: 8 },
+  { id: "sync", label: "Offline changes", group: "Administration", roles: ["owner", "principal", "school_admin", "admissions", "teacher", "bursar"], phase: 3 },
+  { id: "settings", label: "School settings", group: "Administration", roles: ["owner", "school_admin"], phase: 2 },
 ] as const;
 
 export function dateKey(date = new Date()) {
