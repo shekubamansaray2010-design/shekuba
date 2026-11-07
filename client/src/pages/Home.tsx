@@ -1,9 +1,16 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowRight, Eye, GraduationCap, ShieldCheck, TriangleAlert } from "lucide-react";
 import { startLogin } from "@/const";
 import { useAuth } from "@/_core/hooks/useAuth";
 import KORVADemo from "@/components/korva/KORVADemo";
+import RealSchoolWorkspace from "@/components/korva/RealSchoolWorkspace";
 import type { DemoRole } from "@/lib/korva-demo";
+import { trpc } from "@/lib/trpc";
+
+const INVITE_STORAGE_KEY = "korva.pending-school-invite";
+function validInviteToken(value: string | null): value is string {
+  return Boolean(value && value.length >= 32 && value.length <= 128 && /^[A-Za-z0-9_-]+$/.test(value));
+}
 
 const DEMO_ROLE_GROUPS: { label: string; roles: { id: DemoRole; title: string; description: string; initials: string }[] }[] = [
   { label: "School team", roles: [
@@ -34,6 +41,30 @@ export default function Home() {
   const [loginError, setLoginError] = useState("");
   const [logoutError, setLogoutError] = useState("");
   const [loggingOut, setLoggingOut] = useState(false);
+  const [pendingInviteToken, setPendingInviteToken] = useState<string | null>(() => {
+    try {
+      const stored = sessionStorage.getItem(INVITE_STORAGE_KEY);
+      return validInviteToken(stored) ? stored : null;
+    } catch { return null; }
+  });
+  const [invitePreview, setInvitePreview] = useState<{ schoolName: string; role: string; expiresAt: Date; hasLinkedLearner: boolean } | null>(null);
+  const previewAttempted = useRef<string | null>(null);
+  const previewInvite = trpc.korva.school.previewInvitation.useMutation({ onSuccess: setInvitePreview });
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+    const fromLink = params.get("invite");
+    if (!validInviteToken(fromLink)) return;
+    try { sessionStorage.setItem(INVITE_STORAGE_KEY, fromLink); } catch {}
+    setPendingInviteToken(fromLink);
+    window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
+  }, []);
+
+  useEffect(() => {
+    if (!pendingInviteToken || auth.user || previewAttempted.current === pendingInviteToken) return;
+    previewAttempted.current = pendingInviteToken;
+    previewInvite.mutate({ token: pendingInviteToken });
+  }, [pendingInviteToken, auth.user, previewInvite.isPending]);
 
   if (demoRole) return <KORVADemo key={demoRole} initialRole={demoRole} onExit={() => setDemoRole(null)} />;
 
@@ -60,6 +91,23 @@ export default function Home() {
     }
   };
 
+  const clearPendingInvite = () => {
+    try { sessionStorage.removeItem(INVITE_STORAGE_KEY); } catch {}
+    setPendingInviteToken(null);
+    setInvitePreview(null);
+  };
+
+  if (auth.user) return <RealSchoolWorkspace
+    userName={auth.user.name}
+    userEmail={auth.user.email}
+    isPlatformAdmin={auth.user.role === "admin"}
+    pendingInviteToken={pendingInviteToken}
+    onInviteResolved={clearPendingInvite}
+    onSignOut={logout}
+    signOutBusy={loggingOut}
+    signOutError={logoutError}
+  />;
+
   return <main className="korva-entry">
     <section className="korva-entry-hero">
       <div className="korva-entry-hero-inner">
@@ -79,16 +127,14 @@ export default function Home() {
     <section className="korva-entry-panel">
       <div className="korva-entry-panel-inner">
         <div className="korva-entry-mobile-brand"><BrandMark size={30} /><span>KORVA</span></div>
-        <div className="korva-entry-heading"><span className="korva-eyebrow">YOUR SCHOOL WORKSPACE</span><h2>{auth.user ? "Account connected" : "Sign in to KORVA"}</h2><p>{auth.user ? "Your identity is signed in. A school role is assigned separately by the school." : "Continue with your Manus account, or explore a clearly labelled sample workspace."}</p></div>
+        <div className="korva-entry-heading"><span className="korva-eyebrow">YOUR SCHOOL WORKSPACE</span><h2>Sign in to KORVA</h2><p>Continue with your Manus account, create a school workspace, accept an invitation, or explore a clearly labelled sample workspace.</p></div>
 
-        {auth.loading ? <div className="korva-auth-state" role="status"><span className="korva-spinner" />Checking your account…</div> : auth.user ? <div className="korva-authenticated-card">
-          <div className="korva-auth-avatar">{(auth.user.name || auth.user.email || "M").slice(0, 1).toUpperCase()}</div>
-          <div className="korva-auth-user"><strong>{auth.user.name || "Signed-in member"}</strong><span>{auth.user.email || "Manus account"}</span></div>
-          <span className="korva-auth-check"><ShieldCheck size={17} /></span>
-          <p className="korva-auth-notice"><TriangleAlert size={15} />This confirms your account identity only. It does not create a school membership or grant a school role. KORVA will show school records only after an authorized membership is assigned.</p>
-          {logoutError && <p className="korva-entry-error" role="alert">{logoutError}</p>}
-          <button className="korva-auth-button secondary" onClick={logout} disabled={loggingOut}>{loggingOut ? "Signing out…" : "Sign out"}</button>
-        </div> : <>
+        {pendingInviteToken && <div className="korva-invite-preview" role="status">
+          <ShieldCheck size={17} />
+          <div>{previewInvite.isPending ? <strong>Checking your school invitation…</strong> : invitePreview ? <><strong>You’re invited to {invitePreview.schoolName}</strong><span>Role: {invitePreview.role.replaceAll("_", " ")}{invitePreview.hasLinkedLearner ? " · linked learner access" : ""}. Sign in to accept this single-use invitation.</span></> : <><strong>Invitation link detected</strong><span>{previewInvite.error ? "This invitation could not be verified. Ask the school to issue a new private link." : "Sign in to continue; the invitation will be checked before it is accepted."}</span></>}</div>
+        </div>}
+
+        {auth.loading ? <div className="korva-auth-state" role="status"><span className="korva-spinner" />Checking your account…</div> : <>
           <button className="korva-auth-button" onClick={login}><span className="korva-manus-symbol">M</span><span>Continue with Manus</span><ArrowRight size={17} /></button>
           {loginError && <p className="korva-entry-error" role="alert"><TriangleAlert size={15} />{loginError}</p>}
           <div className="korva-entry-divider"><span /> <small>OR EXPLORE A DEMO</small> <span /></div>
